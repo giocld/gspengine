@@ -9,13 +9,18 @@ namespace gspengine {
     Engine::~Engine() { Shutdown(); }
 
     void Engine::Startup() {
-        // start up managers in order
-        m_graphics.Startup();
+    //we start:
+        graphics.Startup(); //graphics
+        input.Startup(graphics.GetWindow()); //input
+        resources.Startup(); //resources
+        audio.Startup(); //audio
     }
 
     void Engine::Shutdown() {
-        // shut down managers in reverse order
-        m_graphics.Shutdown();
+        input.Shutdown();
+        graphics.Shutdown();
+        resources.Shutdown();
+        audio.Shutdown();
     }
 
     void Engine::RunGameLoop(std::function<void()> updateCallback) {
@@ -23,22 +28,24 @@ namespace gspengine {
         const auto SECONDS_PER_TICK = duration<real>(1.0 / 60.0);
         auto last_tick = steady_clock::now();
 
-        // loop until the window says it should close
-        while (!m_graphics.ShouldClose()) {
+        while (!graphics.ShouldClose()) {
             auto now = steady_clock::now();
 
-            // catch up logic (fixed time step)
             while (now - last_tick >= SECONDS_PER_TICK) {
+                //poll events before running game logic so keys are fresh
+                input.Update();
+
+                //run game logic
                 if (updateCallback) {
                     updateCallback();
                 }
+
                 last_tick += duration_cast<steady_clock::duration>(SECONDS_PER_TICK);
             }
 
-            // draw frame and poll events
-            m_graphics.Draw();
-            
-            // yield to cpu to save power
+            graphics.Draw();
+
+            //sleep to save CPU
             std::this_thread::sleep_for(std::chrono::milliseconds(1));
         }
     }
