@@ -54,26 +54,19 @@ add_library(soloud ${soloud_sources})
 target_compile_definitions(soloud PRIVATE WITH_MINIAUDIO)
 target_include_directories(soloud PUBLIC "${soloud_SOURCE_DIR}/include")
 
-#fetch webgpu
-set(WEBGPU_BACKEND "dawn" CACHE STRING "WebGPU backend (wgpu or dawn)")
+#fetch glad for OpenGL loading
 FetchContent_Declare(
-  webgpu
-  GIT_REPOSITORY https://github.com/yig/WebGPU-distribution
-  GIT_TAG        cs425-2025
+  glad
+  GIT_REPOSITORY https://github.com/Dav1dde/glad.git
+  GIT_TAG        v2.0.8
   GIT_SHALLOW TRUE
   GIT_PROGRESS TRUE
 )
-FetchContent_MakeAvailable( webgpu )
+FetchContent_MakeAvailable( glad )
 
-#fetch webgpu adapter
-FetchContent_Declare(
-  glfw3webgpu
-  GIT_REPOSITORY https://github.com/eliemichel/glfw3webgpu
-  GIT_TAG        fdcabcc54b56b50c12c10f5317abf8ae7ac32c29
-  GIT_SHALLOW FALSE
-  GIT_PROGRESS TRUE
-)
-FetchContent_MakeAvailable( glfw3webgpu )
+# Generate glad sources
+add_subdirectory("${glad_SOURCE_DIR}/cmake" glad_cmake)
+glad_add_library(glad_gl_core_33 REPRODUCIBLE API gl:core=3.3)
 
 #fetch glm math library
 FetchContent_Declare(
@@ -85,7 +78,8 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable( glm )
 
-
+# Find OpenGL
+find_package(OpenGL REQUIRED)
 
 if(APPLE)
     find_library(AudioUnit_LIBRARY AudioUnit)
@@ -117,13 +111,12 @@ target_include_directories( gspengine PUBLIC
 )
 
 #link dependencies to the engine
-#added soloud here
 target_link_libraries( gspengine
     PUBLIC glfw
     PUBLIC soloud
     PRIVATE spdlog::spdlog
-    PUBLIC webgpu
-    PUBLIC glfw3webgpu
+    PUBLIC glad_gl_core_33
+    PUBLIC OpenGL::GL
     PUBLIC glm
 )
 
@@ -150,5 +143,3 @@ if( USE_SANITIZER )
         add_link_options(-fsanitize=address)
     endif()
 endif()
-target_link_libraries( helloworld PRIVATE gspengine )
-target_copy_webgpu_binaries( helloworld)
