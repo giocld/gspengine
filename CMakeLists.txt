@@ -77,7 +77,17 @@ FetchContent_Declare(
     GIT_PROGRESS TRUE
 )
 FetchContent_MakeAvailable( glm )
-
+#load sprites into cpu, we use stb images
+FetchContent_Declare(
+    stb_image
+    GIT_REPOSITORY https://github.com/nothings/stb.git
+    GIT_TAG master
+    GIT_SHALLOW TRUE
+    GIT_PROGRESS TRUE
+)
+FetchContent_MakeAvailable( stb_image )
+add_library( stb INTERFACE )
+target_include_directories( stb INTERFACE ${stb_image_SOURCE_DIR} )
 # Find OpenGL
 find_package(OpenGL REQUIRED)
 
@@ -118,6 +128,7 @@ target_link_libraries( gspengine
     PUBLIC glad_gl_core_33
     PUBLIC OpenGL::GL
     PUBLIC glm
+    PUBLIC stb
 )
 
 #define the game executable

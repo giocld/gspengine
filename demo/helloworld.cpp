@@ -38,6 +38,15 @@ void MyGameUpdate() {
     } else {
         enterPressed = false;
     }
+
+    // Draw the hero sprite every frame
+    gspengine::Sprite hero;
+    hero.textureName = "test";  // Matches the name in LoadTexture
+    hero.x = 400.0f;            // Center-ish X
+    hero.y = 300.0f;            // Center-ish Y
+    hero.scaleX = 0.5f;         // Half size
+    hero.scaleY = 0.5f;
+    g_Engine->graphics.AddSprite(hero);
 }
 
 int main() {
@@ -46,6 +55,7 @@ int main() {
     gspengine::Engine engine;
     g_Engine = &engine; //set the global pointer
     engine.Startup();
+    engine.graphics.LoadTexture("test", engine.resources.ResolvePath("textures/hero.png"));
 //--------------------------------------------------------------------------
 // 1. Resolve the path
     std::string soundPath = engine.resources.ResolvePath("sounds/we-are-charlie-kirk-song.mp3");

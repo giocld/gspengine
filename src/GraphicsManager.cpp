@@ -6,6 +6,9 @@
 #include <glad/gl.h>
 #include <GLFW/glfw3.h>
 #include "spdlog/spdlog.h"
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
+
 
 namespace gspengine {
 
@@ -13,13 +16,13 @@ namespace gspengine {
     GraphicsManager::~GraphicsManager() { Shutdown(); }
 
     void GraphicsManager::Startup() {
-        // Initialize GLFW
-        if (!glfwInit()) {
+        //initi glfw
+      if (!glfwInit()) {
             spdlog::error("Failed to initialize GLFW");
             return;
         }
 
-        // Set OpenGL version hints (3.3 Core)
+        //set opengl core version, core 3.3
         glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
         glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
         glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
@@ -30,7 +33,7 @@ namespace gspengine {
         glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 #endif
 
-        // Create window
+        //start the window
         m_window = glfwCreateWindow(800, 600, "GSP Engine - OpenGL", nullptr, nullptr);
 
         if (!m_window) {
@@ -39,10 +42,10 @@ namespace gspengine {
             return;
         }
 
-        // Make context current
+        //make the context current
         glfwMakeContextCurrent(m_window);
 
-        // Load OpenGL functions using GLAD
+        //glad, we load opengl
         int version = gladLoadGL(glfwGetProcAddress);
         if (version == 0) {
             spdlog::error("Failed to initialize GLAD");
@@ -52,15 +55,15 @@ namespace gspengine {
         }
         spdlog::info("OpenGL loaded: {}.{}", GLAD_VERSION_MAJOR(version), GLAD_VERSION_MINOR(version));
 
-        // Enable vsync
+        //vsync on
         glfwSwapInterval(1);
 
-        // Set viewport
+        //set viewpoint
         int width, height;
         glfwGetFramebufferSize(m_window, &width, &height);
         glViewport(0, 0, width, height);
 
-        // Initialize rendering pipeline
+       //init pipeline and make buffers
         InitializePipeline();
         CreateBuffers();
 
@@ -84,7 +87,7 @@ namespace gspengine {
         glShaderSource(shader, 1, &src, nullptr);
         glCompileShader(shader);
 
-        // Check for errors
+        //check the compile status for error
         int success;
         glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
         if (!success) {
@@ -112,13 +115,13 @@ namespace gspengine {
             return 0;
         }
 
-        // Link program
+        //link program
         unsigned int program = glCreateProgram();
         glAttachShader(program, vertShader);
         glAttachShader(program, fragShader);
         glLinkProgram(program);
 
-        // Check for linking errors
+        //check for link errors
         int success;
         glGetProgramiv(program, GL_LINK_STATUS, &success);
         if (!success) {
@@ -129,7 +132,7 @@ namespace gspengine {
             program = 0;
         }
 
-        // Cleanup shaders (they're linked into the program now)
+        //clean the shaders, now that theyre linked into the program
         glDeleteShader(vertShader);
         glDeleteShader(fragShader);
 
@@ -143,14 +146,14 @@ namespace gspengine {
             return;
         }
 
-        // Get uniform location
+        //get uniform location
         m_projectionLoc = glGetUniformLocation(m_shaderProgram, "uProjection");
-
+        m_textureLoc = glGetUniformLocation(m_shaderProgram, "uTexture");
         spdlog::info("Shader program initialized successfully");
     }
 
     void GraphicsManager::CreateBuffers() {
-        // Quad vertices: position (x, y) + texcoord (u, v)
+        //quad vertices: position (x, y) + texcoord (u, v)
         float vertices[] = {
             // pos       // tex
             -1.0f, -1.0f, 0.0f, 1.0f,
@@ -159,81 +162,163 @@ namespace gspengine {
              1.0f,  1.0f, 1.0f, 0.0f,
         };
 
-        // Create VAO
+        //create vao, vertex array object to store vertex attribute confs and bindings from buffers
         glGenVertexArrays(1, &m_vao);
         glBindVertexArray(m_vao);
 
-        // Create VBO for vertices
+        //create vbo to pass the vertex data to the gpu
         glGenBuffers(1, &m_vbo);
         glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
         glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 
-        // Position attribute (location = 0)
+        //position attribute, loc = 0
         glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
         glEnableVertexAttribArray(0);
 
-        // TexCoord attribute (location = 1)
+        //texcoord attribute loc = 1
         glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(float)));
         glEnableVertexAttribArray(1);
 
-        // Create instance VBO (for future instanced rendering)
+        //instance vbo (for future instanced rendering)
         glGenBuffers(1, &m_instanceVbo);
         glBindBuffer(GL_ARRAY_BUFFER, m_instanceVbo);
         glBufferData(GL_ARRAY_BUFFER, sizeof(InstanceData) * 100, nullptr, GL_DYNAMIC_DRAW);
 
-        // Translation attribute (location = 2)
+        //translation attribute loc = 2
         glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(InstanceData), (void*)offsetof(InstanceData, translation));
         glEnableVertexAttribArray(2);
-        glVertexAttribDivisor(2, 1); // Per instance
+        glVertexAttribDivisor(2, 1); //per instance
 
-        // Scale attribute (location = 3)
+        //scale attribute loc = 3
         glVertexAttribPointer(3, 2, GL_FLOAT, GL_FALSE, sizeof(InstanceData), (void*)offsetof(InstanceData, scale));
         glEnableVertexAttribArray(3);
-        glVertexAttribDivisor(3, 1); // Per instance
+        glVertexAttribDivisor(3, 1); //per instance aswell
 
         glBindVertexArray(0);
 
         spdlog::info("GPU Buffers created successfully");
     }
 
-    void GraphicsManager::Draw() {
-        glfwPollEvents();
+    bool GraphicsManager::LoadTexture(const std::string& name, const std::string& path) {
+        // Load image with stb_image
+        int width, height, channels;
+        unsigned char* data = stbi_load(path.c_str(), &width, &height, &channels, 4);
 
-        // Handle resize
+        if (!data) {
+            spdlog::error("Failed to load texture: {}", path);
+            return false;
+        }
+
+        // Create OpenGL texture
+        unsigned int textureId;
+        glGenTextures(1, &textureId);
+        glBindTexture(GL_TEXTURE_2D, textureId);
+
+        // Set texture parameters
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+        // Upload pixel data to GPU
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+
+        // Free CPU memory
+        stbi_image_free(data);
+
+        // Store in our map
+        m_textures[name] = TextureData{textureId, width, height};
+
+        spdlog::info("Loaded texture '{}' ({}x{})", name, width, height);
+        return true;
+    }
+
+    void GraphicsManager::Draw() {
+        const auto& sprites = m_spritesToDraw;  // Use queued sprites
+
+        //handle resize
         int width, height;
         glfwGetFramebufferSize(m_window, &width, &height);
         if (width == 0 || height == 0) return;
 
         glViewport(0, 0, width, height);
 
-        // Clear with green (same as before)
-        glClearColor(0.0f, 1.0f, 0.0f, 1.0f);
+        //dark blue window
+        glClearColor(0.1f, 0.1f, 0.15f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
 
-        // Use shader and draw
+        //use the shader and draw
         if (m_shaderProgram != 0) {
-            glUseProgram(m_shaderProgram);
+           glUseProgram(m_shaderProgram);
 
-            // Simple orthographic projection (identity for now)
-            float projection[16] = {
-                1.0f, 0.0f, 0.0f, 0.0f,
-                0.0f, 1.0f, 0.0f, 0.0f,
-                0.0f, 0.0f, 1.0f, 0.0f,
-                0.0f, 0.0f, 0.0f, 1.0f
-            };
-            if (m_projectionLoc >= 0) {
-                glUniformMatrix4fv(m_projectionLoc, 1, GL_FALSE, projection);
-            }
+    //set up orthographic projection (screen coords: 0,0 = bottom-left)
+    float projection[16] = {
+    2.0f/width, 0.0f,        0.0f, 0.0f,
+    0.0f,       2.0f/height, 0.0f, 0.0f,
+    0.0f,       0.0f,        1.0f, 0.0f,
+    -1.0f,      -1.0f,        0.0f, 1.0f
+};
 
-            glBindVertexArray(m_vao);
-            // Just clear for now - no actual geometry drawn yet
-            glBindVertexArray(0);
-        }
+if (m_projectionLoc >= 0) {
+    glUniformMatrix4fv(m_projectionLoc, 1, GL_FALSE, projection);
+}
+
+//enable blending for transparency
+glEnable(GL_BLEND);
+glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+glBindVertexArray(m_vao);
+
+//we draw each sprite
+for (const auto& sprite : sprites) {
+    //get the texture
+    auto it = m_textures.find(sprite.textureName);
+    if (it == m_textures.end()) continue;
+
+    const TextureData& tex = it->second;
+
+    //bind texture
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, tex.id);
+    if (m_textureLoc >= 0) {
+        glUniform1i(m_textureLoc, 0);
+    }
+
+    //update instance data for this sprite
+    InstanceData instance;
+    instance.translation[0] = sprite.x;
+    instance.translation[1] = sprite.y;
+    instance.translation[2] = sprite.z;
+    instance.scale[0] = sprite.scaleX * tex.width;
+    instance.scale[1] = sprite.scaleY * tex.height;
+
+    glBindBuffer(GL_ARRAY_BUFFER, m_instanceVbo);
+    glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(InstanceData), &instance);
+
+    //draw the quad
+    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+}
+
+glBindVertexArray(0);
+        }  
 
         glfwSwapBuffers(m_window);
+        m_spritesToDraw.clear();  // Clear for next frame
+    }
+
+    void GraphicsManager::AddSprite(const Sprite& sprite) {
+        m_spritesToDraw.push_back(sprite);
     }
 
     void GraphicsManager::Shutdown() {
+        //we delete textures to free gpu memory
+      for (auto& [name, tex] : m_textures){
+        if (tex.id != 0){
+          glDeleteTextures(1, &tex.id);
+        }
+      }
+      m_textures.clear();
+
         if (m_instanceVbo) {
             glDeleteBuffers(1, &m_instanceVbo);
             m_instanceVbo = 0;

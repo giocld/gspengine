@@ -28,7 +28,7 @@ namespace gspengine {
     bool SoundManager::LoadSound(const std::string& name, const std::string& path) {
         //load the wav file (SoLoud handles wav ogg mp3 via the Wav class)
         SoLoud::result res = m_sounds[name].load(path.c_str());
-        
+
         if (res != SoLoud::SO_NO_ERROR) {
             spdlog::error("Failed to load sound '{}' from path: {}", name, path);
             m_sounds.erase(name); //clean up empty entry
@@ -41,7 +41,7 @@ namespace gspengine {
 
     void SoundManager::PlaySound(const std::string& name) {
         if (m_sounds.find(name) != m_sounds.end()) {
-            // Play the sound (returns a handle)
+            //play the sound (returns a handle)
             m_soloud.play(m_sounds[name]);
         } else {
             spdlog::warn("Attempted to play undefined sound '{}'", name);

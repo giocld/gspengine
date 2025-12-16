@@ -2,21 +2,37 @@
 
 #include "Types.h"
 #include <string>
+#include <unordered_map>
+#include <vector>
 
-// Forward declare GLFW
+//forward declare GLFW
 struct GLFWwindow;
 
 namespace gspengine {
 
-    // Instance data for batched sprite rendering
+    //data for batched sprite rendering
     struct InstanceData {
         float translation[3];
         float scale[2];
     };
 
-    // Uniform data for projection matrix
+    //data for projection matrix
     struct Uniforms {
         float projection[16];
+    };
+    struct TextureData {
+      unsigned int id = 0;
+      int width = 0;
+      int height = 0;
+    };
+
+    struct Sprite {
+      std::string textureName;
+      float x = 0.0f;     //pos x
+      float y = 0.0f;     //pos y
+      float scaleX = 1.0f;//scale width
+      float scaleY = 1.0f;//scale height
+      float z = 0.0f;     //depth, for sorting, higher = in front
     };
 
     class GraphicsManager {
@@ -27,31 +43,38 @@ namespace gspengine {
         void Startup();
         void Shutdown();
         void Draw();
+        void AddSprite(const Sprite& sprite);
 
         bool ShouldClose() const;
         void SetWindowShouldClose(bool value);
         GLFWwindow* GetWindow() const;
 
+        bool LoadTexture(const std::string& name, const std::string& path);
     private:
-        // Shader utilities
+        //shader utilities
         unsigned int LoadShaderProgram(const std::string& vertPath, const std::string& fragPath);
         unsigned int CompileShader(unsigned int type, const std::string& source);
         std::string ReadFile(const std::string& path);
 
-        // Pipeline initialization
+        //init pipeline
         void InitializePipeline();
         void CreateBuffers();
 
-        // Window
+        //window
         GLFWwindow* m_window = nullptr;
 
-        // OpenGL objects
+        //opengl objects
         unsigned int m_shaderProgram = 0;
         unsigned int m_vao = 0;
         unsigned int m_vbo = 0;
         unsigned int m_instanceVbo = 0;
 
-        // Projection uniform location
+        //projection uniform location
         int m_projectionLoc = -1;
+        int m_textureLoc = -1;
+        std::unordered_map<std::string, TextureData> m_textures;
+
+        // Sprites to draw this frame (cleared after each Draw)
+        std::vector<Sprite> m_spritesToDraw;
     };
 }
