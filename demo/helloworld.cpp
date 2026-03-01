@@ -58,7 +58,7 @@ int main() {
     engine.graphics.LoadTexture("test", engine.resources.ResolvePath("textures/hero.png"));
 //--------------------------------------------------------------------------
 // 1. Resolve the path
-    std::string soundPath = engine.resources.ResolvePath("sounds/we-are-charlie-kirk-song.mp3");
+    std::string soundPath = engine.resources.ResolvePath("sounds/test.mp3");
 
 // 2. Load the sound
     if (engine.audio.LoadSound("startup_sound", soundPath)) {

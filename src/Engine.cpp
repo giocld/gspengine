@@ -14,9 +14,11 @@ namespace gspengine {
         input.Startup(graphics.GetWindow()); //input
         resources.Startup(); //resources
         audio.Startup(); //audio
+        scripts.Init(); //scripts
     }
 
     void Engine::Shutdown() {
+        scripts.Shutdown();
         input.Shutdown();
         graphics.Shutdown();
         resources.Shutdown();

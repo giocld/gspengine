@@ -5,6 +5,9 @@
 
 #include <glad/gl.h>
 #include <GLFW/glfw3.h>
+#include <string>
+#include <unordered_map>
+#include <vector>
 #include "spdlog/spdlog.h"
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
@@ -269,38 +272,57 @@ glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 glBindVertexArray(m_vao);
 
-//we draw each sprite
-for (const auto& sprite : sprites) {
-    //get the texture
-    auto it = m_textures.find(sprite.textureName);
-    if (it == m_textures.end()) continue;
+std::unordered_map<std::string, std::vector<Sprite>> batches;
 
+for (const auto& sprite : sprites) {
+    auto it = m_textures.find(sprite.textureName);
+    if (it == m_textures.end()) {
+        spdlog::warn("Sprite references unknown texture: '{}'", sprite.textureName);
+        continue;
+    }
+    batches[sprite.textureName].push_back(sprite);
+}
+
+spdlog::debug("Processing {} sprites into {} batches", sprites.size(), batches.size());
+
+for (const auto& [textureName, spriteGroup] : batches){
+    auto it = m_textures.find(textureName);
+    if(it == m_textures.end()) continue;
     const TextureData& tex = it->second;
 
-    //bind texture
+    spdlog::debug("Drawing batch '{}' with {} sprites", textureName, spriteGroup.size());
+
+    //bind texture ONCE for each of the batches
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, tex.id);
     if (m_textureLoc >= 0) {
         glUniform1i(m_textureLoc, 0);
     }
+    
+    std::vector<InstanceData> instances;
+    instances.reserve(spriteGroup.size());
 
-    //update instance data for this sprite
-    InstanceData instance;
-    instance.translation[0] = sprite.x;
-    instance.translation[1] = sprite.y;
-    instance.translation[2] = sprite.z;
-    instance.scale[0] = sprite.scaleX * tex.width;
-    instance.scale[1] = sprite.scaleY * tex.height;
-
+    for (const auto& sprite : spriteGroup) {
+        InstanceData instance;
+        instance.translation[0] = sprite.x;
+        instance.translation[1] = sprite.y;
+        instance.translation[2] = sprite.z;
+        instance.scale[0] = sprite.scaleX * tex.width;
+        instance.scale[1] = sprite.scaleY * tex.height;
+        instances.push_back(instance);
+        spdlog::trace("  Sprite at ({}, {}), scale ({}, {})", 
+                      sprite.x, sprite.y, instance.scale[0], instance.scale[1]);
+    }
+    
     glBindBuffer(GL_ARRAY_BUFFER, m_instanceVbo);
-    glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(InstanceData), &instance);
-
-    //draw the quad
-    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+    glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(InstanceData) * instances.size(), instances.data());
+    
+    //we draw all sprites of a batch in 1 instance
+    glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, instances.size());
+    spdlog::debug("  Drew {} instances", instances.size());
 }
-
 glBindVertexArray(0);
-        }  
+        }
 
         glfwSwapBuffers(m_window);
         m_spritesToDraw.clear();  // Clear for next frame

@@ -5,6 +5,7 @@
 #include "Types.h"
 #include "GraphicsManager.h"
 #include "InputManager.h"
+#include "ScriptManager.h"
 #include "ResourceManager.h"
 #include <functional>
 
@@ -24,5 +25,6 @@ namespace gspengine {
         InputManager input;
         ResourceManager resources;
         SoundManager audio;
+        ScriptManager scripts;
     };
 }

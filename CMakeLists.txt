@@ -77,7 +77,7 @@ FetchContent_Declare(
     GIT_PROGRESS TRUE
 )
 FetchContent_MakeAvailable( glm )
-#load sprites into cpu, we use stb images
+#load sprites into cpu
 FetchContent_Declare(
     stb_image
     GIT_REPOSITORY https://github.com/nothings/stb.git
@@ -85,6 +85,23 @@ FetchContent_Declare(
     GIT_SHALLOW TRUE
     GIT_PROGRESS TRUE
 )
+#fetch lua
+FetchContent_Declare(
+  lua
+  GIT_REPOSITORY https://github.com/lua/lua.git
+  GIT_TAG v5.4.7
+)
+FetchContent_MakeAvailable(lua)
+
+#fetch sol2
+FetchContent_Declare(
+  sol2
+  GIT_REPOSITORY https://github.com/ThePhD/sol2.git
+  GIT_TAG develop
+  GIT_SHALLOW FALSE
+)
+FetchContent_MakeAvailable(sol2)
+
 FetchContent_MakeAvailable( stb_image )
 add_library( stb INTERFACE )
 target_include_directories( stb INTERFACE ${stb_image_SOURCE_DIR} )
@@ -105,10 +122,18 @@ endif()
 #declare the engine library
 add_library( gspengine STATIC
     src/Engine.cpp
+    src/Engine.h
     src/GraphicsManager.cpp
+    src/GraphicsManager.h
     src/InputManager.cpp
+    src/InputManager.h
     src/ResourceManager.cpp
+    src/ResourceManager.h
     src/SoundManager.cpp
+    src/SoundManager.h
+    src/ScriptManager.cpp
+    src/ScriptManager.h
+    src/Types.h
 )
 
 set_target_properties( gspengine PROPERTIES CXX_STANDARD 20 )
@@ -124,11 +149,13 @@ target_include_directories( gspengine PUBLIC
 target_link_libraries( gspengine
     PUBLIC glfw
     PUBLIC soloud
-    PRIVATE spdlog::spdlog
+    PUBLIC spdlog::spdlog
     PUBLIC glad_gl_core_33
     PUBLIC OpenGL::GL
     PUBLIC glm
     PUBLIC stb
+    PUBLIC lua
+    PUBLIC sol2
 )
 
 #define the game executable

@@ -26,3 +26,5 @@ helloworld
 .DS_Store
 # Windows
 Thumbs.db
+# agent
+AGENTS.md
