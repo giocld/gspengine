@@ -15,6 +15,7 @@ helloworld
 
 # Clangd cache
 .cache/
+.cache
 
 # vscode
 /.vscode

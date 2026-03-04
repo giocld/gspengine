@@ -134,6 +134,13 @@ add_library( gspengine STATIC
     src/ScriptManager.cpp
     src/ScriptManager.h
     src/Types.h
+    # ECS files
+    src/ECS/Entity.h
+    src/ECS/Component.h
+    src/ECS/PositionComponent.h
+    src/ECS/SpriteComponent.h
+    src/ECS/VelocityComponent.h
+    src/ECS/Registry.h
 )
 
 set_target_properties( gspengine PROPERTIES CXX_STANDARD 20 )
@@ -181,3 +188,8 @@ if( USE_SANITIZER )
         add_link_options(-fsanitize=address)
     endif()
 endif()
+
+# ECS Registry Test
+add_executable( registrytest src/ECS/RegistryTest.cpp )
+set_target_properties( registrytest PROPERTIES CXX_STANDARD 20 )
+target_link_libraries( registrytest PRIVATE gspengine )
